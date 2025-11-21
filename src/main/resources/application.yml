@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: financial-archive-service
+
+  # dataSource (postgreSQL)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financial-archive-db
+    username: postgres
+    password: 1234
+    driver-class-name: org.postgresql.Driver
+
+  # jpa
+  jpa:
+    hibernate:
+      ddl-auto: none
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+
+# logging
+logging:
+  level:
+    org.springframework.boot.autoconfigure.jdbc: DEBUG
+
+  
+server:
+  port: 8085
