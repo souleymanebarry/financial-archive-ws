@@ -25,7 +25,8 @@ logging:
 server:
   port: 8085
 
-# SECURITY
-security:
-  jwt:
-    secret: 9f8a7c6e5d4b3a2f1c0e9d8b7a6c5e4f
+# =========================
+# RSA
+# =========================
+rsa:
+  public-key: classpath:certs/public.pem
