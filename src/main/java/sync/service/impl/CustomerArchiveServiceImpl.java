@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 
 @Service
 @Log4j2
@@ -30,25 +29,16 @@ public class CustomerArchiveServiceImpl implements CustomerArchiveService {
         CustomerArchive customerArchive =
                 customerArchiveMapper.customerArchiveDtoToCustomerArchive(customerArchiveDTO);
 
-        if (customerArchive != null && customerArchive.getAccounts() != null) {
-            customerArchive.getAccounts().forEach(account -> {
-                account.setCustomerArchive(customerArchive);
-
-                if (account.getOperations() != null) {
-                    account.getOperations().forEach(operationArchive ->
-                            operationArchive.setAccountArchive(account));
-                }
-            });
-
-            if (customerArchive.getArchiveCreatedAt() == null) {
-                customerArchive.setArchiveCreatedAt(LocalDateTime.now());
-            }
-
-            // Save to DB
-            customerArchiveRepository.save(customerArchive);
+        if (customerArchive == null) {
+            throw new IllegalStateException(
+                    "Mapper returned null for customerId: " + customerArchiveDTO.getCustomerId());
         }
-        log.info(" Archiving completed for customerID: {} with {} accounts.",
+
+        // Save to DB
+        customerArchiveRepository.save(customerArchive);
+
+        log.info("Archiving completed for customerID: {} with {} accounts.",
                 customerArchiveDTO.getCustomerId(),
-                (customerArchiveDTO.getAccounts() != null ? customerArchiveDTO.getAccounts().size() : 0));
+                customerArchive.getAccounts().size());
     }
 }

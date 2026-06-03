@@ -1,9 +1,10 @@
 package sync.dtos;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import sync.enums.Gender;
+import sync.entities.enums.Gender;
 import lombok.Builder;
 import lombok.Data;
 
@@ -35,5 +36,6 @@ public class CustomerArchiveDTO {
     @NotNull(message = "gender must not be null")
     private Gender gender;
 
+    @Valid
     private List<AccountArchiveDTO> accounts;
 }
