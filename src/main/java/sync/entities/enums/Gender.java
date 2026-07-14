@@ -1,4 +1,4 @@
-package sync.enums;
+package sync.entities.enums;
 
 public enum Gender {
 

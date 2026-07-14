@@ -1,10 +1,11 @@
 package sync.mappers;
 
 
+import org.mapstruct.AfterMapping;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
-
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import sync.dtos.AccountArchiveDTO;
 import sync.dtos.CustomerArchiveDTO;
 import sync.dtos.OperationArchiveDTO;
@@ -29,9 +30,9 @@ public interface CustomerArchiveMapper {
     CustomerArchiveDTO customerArchiveToCustomerArchiveDto(CustomerArchive customerArchive);
 
     // ===== ACCOUNT =====
-    @Mapping(target = "archiveAccountId", ignore = true) // généré par DB
+    @Mapping(target = "archiveAccountId", ignore = true)
     @Mapping(target = "originalAccountId", source = "accountId")
-    @Mapping(target = "customerArchive", ignore = true) // sera set plus tard
+    @Mapping(target = "customerArchive", ignore = true)
     @Mapping(target = "operations", source = "operations")
     AccountArchive accountArchiveDtoToAccountArchive(AccountArchiveDTO accountArchiveDTO);
 
@@ -50,6 +51,15 @@ public interface CustomerArchiveMapper {
     @InheritInverseConfiguration
     @Mapping(target = "operationId", source = "originalOperationId")
     OperationArchiveDTO operationArchiveToOperationArchiveDto(OperationArchive entity);
+
+    // ===== BIDIRECTIONAL WIRING =====
+    @AfterMapping
+    default void linkBidirectionalRelationships(@MappingTarget CustomerArchive customerArchive) {
+        customerArchive.getAccounts().forEach(account -> {
+            account.setCustomerArchive(customerArchive);
+            account.getOperations().forEach(op -> op.setAccountArchive(account));
+        });
+    }
 
     // ===== COLLECTIONS =====
     List<AccountArchive> accountArchiveDtosToEntities(List<AccountArchiveDTO> dtos);

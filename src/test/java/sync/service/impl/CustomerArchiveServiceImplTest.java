@@ -21,17 +21,17 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static sync.enums.AccountStatus.ACTIVATED;
-import static sync.enums.Gender.MALE;
-import static sync.enums.OperationType.CREDIT;
-import static sync.enums.OperationType.DEBIT;
+import static sync.entities.enums.AccountStatus.ACTIVATED;
+import static sync.entities.enums.Gender.MALE;
+import static sync.entities.enums.OperationType.CREDIT;
+import static sync.entities.enums.OperationType.DEBIT;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -46,11 +46,11 @@ class CustomerArchiveServiceImplTest {
     @InjectMocks
     private CustomerArchiveServiceImpl archiveService;
 
-    CustomerArchiveDTO customerArchiveDTO;
+    private CustomerArchiveDTO customerArchiveDTO;
 
-    UUID customerId = UUID.randomUUID();
+    private final UUID customerId = UUID.randomUUID();
 
-    List<AccountArchive> accountArchives;
+    private List<AccountArchive> accountArchives;
 
     @BeforeEach
     void setUp() {
@@ -146,7 +146,6 @@ class CustomerArchiveServiceImplTest {
                 .originalCustomerId(customerArchiveDTO.getCustomerId())
                 .firstName(customerArchiveDTO.getFirstName())
                 .lastName(customerArchiveDTO.getLastName())
-                .lastName(customerArchiveDTO.getLastName())
                 .email(customerArchiveDTO.getEmail())
                 .gender(customerArchiveDTO.getGender())
                 .archiveCreatedAt(LocalDateTime.now())
@@ -156,80 +155,44 @@ class CustomerArchiveServiceImplTest {
         when(customerArchiveMapper.customerArchiveDtoToCustomerArchive(customerArchiveDTO))
                 .thenReturn(customerArchive);
 
-        when(customerArchiveRepository.save(any(CustomerArchive.class))).thenReturn(customerArchive);
-
         ArgumentCaptor<CustomerArchive> customerArchiveCaptor = ArgumentCaptor.forClass(CustomerArchive.class);
 
         //Act
         archiveService.saveArchivedCustomer(customerArchiveDTO);
 
         // verify
-        verify(customerArchiveRepository,times(1)).save(customerArchiveCaptor.capture());
+        verify(customerArchiveRepository).save(customerArchiveCaptor.capture());
         verifyNoMoreInteractions(customerArchiveRepository);
 
         // Extract captured argument
         CustomerArchive savedCustomer = customerArchiveCaptor.getValue();
 
         //Assert
-        assertAll(
-                () -> assertThat(savedCustomer.getFirstName()).isEqualTo("Alex"),
-                () -> assertThat(savedCustomer.getLastName()).isEqualTo("CONDE"),
-                () -> assertThat(savedCustomer.getEmail()).isEqualTo("alex.conde-ext@google.com"),
-                () -> assertThat(savedCustomer.getAccounts()).hasSize(2),
-                () -> assertThat(savedCustomer.getAccounts().get(0).getBalance()).isEqualByComparingTo(BigDecimal.valueOf(23_000)),
-                () -> assertThat(savedCustomer.getAccounts().get(1).getBalance()).isEqualByComparingTo(BigDecimal.valueOf(20_000)),
-                () -> assertThat(savedCustomer.getAccounts().get(0).getAccountType()).isEqualTo("CURRENT ACCOUNT"),
-                () -> assertThat(savedCustomer.getAccounts().get(1).getAccountType()).isEqualTo("SAVING ACCOUNT"),
-                () -> assertThat(savedCustomer.getAccounts().get(0).getOperations()).hasSize(2),
-                () -> assertThat(savedCustomer.getAccounts().get(1).getOperations()).hasSize(1)
-        );
+        assertSoftly(softly -> {
+            softly.assertThat(savedCustomer.getFirstName()).isEqualTo("Alex");
+            softly.assertThat(savedCustomer.getLastName()).isEqualTo("CONDE");
+            softly.assertThat(savedCustomer.getEmail()).isEqualTo("alex.conde-ext@google.com");
+            softly.assertThat(savedCustomer.getAccounts()).hasSize(2);
+            softly.assertThat(savedCustomer.getAccounts().get(0).getBalance()).isEqualByComparingTo(BigDecimal.valueOf(23_000));
+            softly.assertThat(savedCustomer.getAccounts().get(1).getBalance()).isEqualByComparingTo(BigDecimal.valueOf(20_000));
+            softly.assertThat(savedCustomer.getAccounts().get(0).getAccountType()).isEqualTo("CURRENT ACCOUNT");
+            softly.assertThat(savedCustomer.getAccounts().get(1).getAccountType()).isEqualTo("SAVING ACCOUNT");
+            softly.assertThat(savedCustomer.getAccounts().get(0).getOperations()).hasSize(2);
+            softly.assertThat(savedCustomer.getAccounts().get(1).getOperations()).hasSize(1);
+        });
     }
 
     @Test
-    void shouldSaveArchivedCustomerWhenArchiveCreatedAtIsNull() {
-        //Arrange
-        CustomerArchive customerArchive = CustomerArchive.builder()
-                .archiveCustomerId(UUID.randomUUID())
-                .originalCustomerId(customerArchiveDTO.getCustomerId())
-                .firstName(customerArchiveDTO.getFirstName())
-                .lastName(customerArchiveDTO.getLastName())
-                .lastName(customerArchiveDTO.getLastName())
-                .email(customerArchiveDTO.getEmail())
-                .gender(customerArchiveDTO.getGender())
-                .archiveCreatedAt(null)
-                .accounts(accountArchives)
-                .build();
-
+    void shouldThrowIllegalStateExceptionWhenMapperReturnsNull() {
+        // Arrange
         when(customerArchiveMapper.customerArchiveDtoToCustomerArchive(customerArchiveDTO))
-                .thenReturn(customerArchive);
+                .thenReturn(null);
 
-        when(customerArchiveRepository.save(any(CustomerArchive.class))).thenReturn(customerArchive);
+        // Act + Assert
+        assertThatThrownBy(() -> archiveService.saveArchivedCustomer(customerArchiveDTO))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(customerArchiveDTO.getCustomerId().toString());
 
-        ArgumentCaptor<CustomerArchive> customerArchiveCaptor = ArgumentCaptor.forClass(CustomerArchive.class);
-
-        //Act
-        archiveService.saveArchivedCustomer(customerArchiveDTO);
-
-        // verify
-        verify(customerArchiveRepository,times(1)).save(customerArchiveCaptor.capture());
-        verifyNoMoreInteractions(customerArchiveRepository);
-
-        // Extract captured argument
-        CustomerArchive savedCustomer = customerArchiveCaptor.getValue();
-
-        //Assert
-        assertAll(
-                () -> assertThat(savedCustomer.getFirstName()).isEqualTo("Alex"),
-                () -> assertThat(savedCustomer.getLastName()).isEqualTo("CONDE"),
-                () -> assertThat(savedCustomer.getEmail()).isEqualTo("alex.conde-ext@google.com"),
-                () -> assertThat(savedCustomer.getAccounts()).hasSize(2),
-                () -> assertThat(savedCustomer.getAccounts().get(0).getBalance()).isEqualByComparingTo(BigDecimal.valueOf(23_000)),
-                () -> assertThat(savedCustomer.getAccounts().get(1).getBalance()).isEqualByComparingTo(BigDecimal.valueOf(20_000)),
-                () -> assertThat(savedCustomer.getAccounts().get(0).getAccountType()).isEqualTo("CURRENT ACCOUNT"),
-                () -> assertThat(savedCustomer.getAccounts().get(1).getAccountType()).isEqualTo("SAVING ACCOUNT"),
-                () -> assertThat(savedCustomer.getAccounts().get(0).getOperations()).hasSize(2),
-                () -> assertThat(savedCustomer.getAccounts().get(1).getOperations()).hasSize(1)
-        );
+        verify(customerArchiveRepository, never()).save(any());
     }
-
 }

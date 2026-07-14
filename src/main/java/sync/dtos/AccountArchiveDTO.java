@@ -1,13 +1,14 @@
 package sync.dtos;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Builder;
 import lombok.Data;
-import sync.enums.AccountStatus;
+import sync.entities.enums.AccountStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -49,5 +50,6 @@ public class AccountArchiveDTO {
     @Digits(integer = 5, fraction = 4, message = "interestRate must be a valid decimal number")
     private BigDecimal interestRate;
 
+    @Valid
     private List<OperationArchiveDTO> operations;
 }

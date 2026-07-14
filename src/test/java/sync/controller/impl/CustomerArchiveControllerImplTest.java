@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import sync.dtos.CustomerArchiveDTO;
@@ -16,12 +17,12 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static sync.enums.Gender.FEMALE;
-import static sync.enums.Gender.MALE;
+import static sync.entities.enums.Gender.FEMALE;
+import static sync.entities.enums.Gender.MALE;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -34,11 +35,11 @@ class CustomerArchiveControllerImplTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    CustomerArchiveService customerArchiveService;
+    private CustomerArchiveService customerArchiveService;
 
     @Test
     @SneakyThrows
-    void shouldReturn_200_whenValidRequest() {
+    void shouldReturn_201_whenValidRequest() {
         // given
         CustomerArchiveDTO dto = CustomerArchiveDTO.builder()
                 .customerId(UUID.randomUUID())
@@ -48,14 +49,15 @@ class CustomerArchiveControllerImplTest {
                 .email("john.doe@google.com")
                 .build();
 
-        //when + Then
+        // when + then
         mockMvc.perform(post("/api/v1/archives/customers")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_archive:write")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         // verify
-        verify(customerArchiveService, times(1)).saveArchivedCustomer(any());
+        verify(customerArchiveService).saveArchivedCustomer(any());
     }
 
     @Test
@@ -72,6 +74,7 @@ class CustomerArchiveControllerImplTest {
 
         // when + then
         mockMvc.perform(post("/api/v1/archives/customers")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_archive:write")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
@@ -80,4 +83,46 @@ class CustomerArchiveControllerImplTest {
         verify(customerArchiveService, never()).saveArchivedCustomer(any());
     }
 
+    @Test
+    @SneakyThrows
+    void shouldReturn_401_whenNoToken() {
+        // given
+        CustomerArchiveDTO dto = CustomerArchiveDTO.builder()
+                .customerId(UUID.randomUUID())
+                .firstName("John")
+                .lastName("DOE")
+                .gender(MALE)
+                .email("john.doe@google.com")
+                .build();
+
+        // when + then
+        mockMvc.perform(post("/api/v1/archives/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isUnauthorized());
+
+        verify(customerArchiveService, never()).saveArchivedCustomer(any());
+    }
+
+    @Test
+    @SneakyThrows
+    void shouldReturn_403_whenMissingScope() {
+        // given
+        CustomerArchiveDTO dto = CustomerArchiveDTO.builder()
+                .customerId(UUID.randomUUID())
+                .firstName("John")
+                .lastName("DOE")
+                .gender(MALE)
+                .email("john.doe@google.com")
+                .build();
+
+        // when + then
+        mockMvc.perform(post("/api/v1/archives/customers")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_archive:read")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isForbidden());
+
+        verify(customerArchiveService, never()).saveArchivedCustomer(any());
+    }
 }

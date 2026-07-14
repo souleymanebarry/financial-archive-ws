@@ -9,7 +9,7 @@ spring:
     password: 1234
     driver-class-name: org.postgresql.Driver
 
-  # jpa
+# jpa
   jpa:
     hibernate:
       ddl-auto: none
@@ -20,7 +20,13 @@ spring:
 logging:
   level:
     org.springframework.boot.autoconfigure.jdbc: DEBUG
+    org.springframework.security: TRACE
 
-  
 server:
   port: 8085
+
+# =========================
+# RSA
+# =========================
+rsa:
+  public-key: classpath:certs/public.pem

@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Builder;
 import lombok.Data;
-import sync.enums.OperationType;
+import sync.entities.enums.OperationType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
